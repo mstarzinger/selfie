@@ -189,6 +189,7 @@ uint64_t selfie_dprintf(uint64_t fd, char* format, ...);
 char* remove_prefix_from_printf_procedures(char* procedure);
 
 void direct_output(char* buffer);
+void direct_println();
 
 // malloc
 
@@ -252,7 +253,7 @@ uint64_t* character_buffer; // buffer for reading and writing characters
 
 char* integer_buffer; // buffer for formatting integers
 
-uint64_t MAX_OUTPUT_LENGTH = 32; // maximum number of bytes in string buffer
+uint64_t MAX_OUTPUT_LENGTH = 256; // maximum number of bytes in string buffer
 
 char* string_buffer; // buffer for console and file output
 
@@ -1704,7 +1705,7 @@ void do_ecall();
 void undo_ecall();
 
 void print_data_line_number();
-void print_data_context(uint64_t data);
+void print_data_context();
 void print_data(uint64_t data);
 
 // ------------------------ GLOBAL CONSTANTS -----------------------
@@ -2060,7 +2061,7 @@ void reset_profiler() {
 // *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~
 
 // -----------------------------------------------------------------
-// ---------------------------- CONTEXTS ---------------------------
+// ------------------------ MACHINE CONTEXTS -----------------------
 // -----------------------------------------------------------------
 
 uint64_t* new_context();
@@ -3203,6 +3204,10 @@ void direct_output(char* buffer) {
 
     number_of_written_characters = number_of_written_characters + number_of_dprinted_characters;
   }
+}
+
+void direct_println() {
+  sprintf(string_buffer, "\n");direct_output(string_buffer);
 }
 
 uint64_t round_up(uint64_t n, uint64_t m) {
@@ -4729,7 +4734,7 @@ uint64_t compile_factor() {
 
     type = UINT64STAR_T;
 
-  //  "(" expression ")"
+  // "(" expression ")" ?
   } else if (symbol == SYM_LPARENTHESIS) {
     get_symbol();
 
@@ -5310,6 +5315,8 @@ void compile_statement() {
     else
       syntax_error_symbol(SYM_SEMICOLON);
   }
+
+  // assert: allocated_temporaries == 0
 }
 
 uint64_t compile_type() {
@@ -8159,7 +8166,7 @@ void print_cache_profile(uint64_t hits, uint64_t misses, char* cache_name) {
   accesses = hits + misses;
 
   printf("%s: %s%lu,", selfie_name, cache_name, accesses);
-  printf("%lu(%lu.%2lu%%),%lu(%lu.%2lu%%)",
+  printf("%lu(%lu.%.2lu%%),%lu(%lu.%.2lu%%)",
     hits,
     percentage_format_integral_2(accesses, hits),
     percentage_format_fractional_2(accesses, hits),
@@ -8996,14 +9003,17 @@ void print_code_context_for_instruction(uint64_t address) {
     if (symbolic)
       // skip further output
       return;
-    else
-      print(": ");
+    else {
+      sprintf(string_buffer, ": ");
+      direct_output(string_buffer);
+    }
   } else {
     if (model) {
       sprintf(string_buffer,"0x%lX", address);
       direct_output(string_buffer);
       print_code_line_number_for_instruction(address, code_start);
-      print(": ");
+      sprintf(string_buffer, ": ");
+      direct_output(string_buffer);
     } else if (disassemble_verbose) {
       sprintf(string_buffer,"0x%lX", address);
       direct_output(string_buffer);
@@ -9542,7 +9552,7 @@ void do_jal() {
     // first link
     *(registers + rd) = pc + INSTRUCTIONSIZE;
 
-    // then jump for procedure calls
+    // then jump (for procedure call)
     pc = pc + imm;
 
     // prologue address for profiling procedure calls
@@ -9554,7 +9564,7 @@ void do_jal() {
     // and individually
     *(calls_per_procedure + a) = *(calls_per_procedure + a) + 1;
   } else if (signed_less_than(imm, 0)) {
-    // jump backwards to check for another loop iteration
+    // just jump backward (to check loop condition again)
     pc = pc + imm;
 
     // first loop instruction address for profiling loop iterations
@@ -9682,22 +9692,17 @@ void print_data_line_number() {
   }
 }
 
-void print_data_context(uint64_t data) {
+void print_data_context() {
   sprintf(string_buffer, "0x%lX", pc);
   direct_output(string_buffer);
-
-  if (disassemble_verbose) {
-    print_data_line_number();
-    print(": ");
-    print_hexadecimal(data, SIZEOFUINT64 * 2);
-    print(" ");
-  } else
-    print(": ");
+  print_data_line_number();
+  sprintf(string_buffer, ": ");
+  direct_output(string_buffer);
 }
 
 void print_data(uint64_t data) {
   if (disassemble_verbose)
-    print_data_context(data);
+    print_data_context();
   if (IS64BITSYSTEM)
     sprintf(string_buffer, ".8byte 0x%lX", data);
   else
@@ -9781,7 +9786,8 @@ void selfie_disassemble(uint64_t verbose) {
 
     decode();
     print_instruction();
-    println();
+    sprintf(string_buffer, "\n");
+    direct_output(string_buffer);
 
     pc = pc + INSTRUCTIONSIZE;
   }
@@ -9790,7 +9796,8 @@ void selfie_disassemble(uint64_t verbose) {
     data = load_data(pc - code_size);
 
     print_data(data);
-    println();
+    sprintf(string_buffer, "\n");
+    direct_output(string_buffer);
 
     pc = pc + WORDSIZE;
   }
@@ -10450,7 +10457,7 @@ void print_host_os() {
 // *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~ *~*~
 
 // -----------------------------------------------------------------
-// ---------------------------- CONTEXTS ---------------------------
+// ------------------------ MACHINE CONTEXTS -----------------------
 // -----------------------------------------------------------------
 
 uint64_t* new_context() {
