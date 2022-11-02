@@ -30,7 +30,7 @@ Part of the assignment is to figure out how to do that.
 Your message has to be prefixed like every other "status message" of selfie.
 So instead of printing:
 
-`This is <firstname> <lastname>'s Selfie!`, you have to print `<selfie-path>: This is <firstname> <lastname>'s Selfie!`
+`This is <firstname> <lastname>'s Selfie!`, you have to print `<selfiename>: This is <firstname> <lastname>'s Selfie!`
 
 
 
@@ -71,6 +71,16 @@ Implement code generation for bitwise logical operators `&`, `|`, and `~` in C\*
 - Before coding, extend the grammar in **grammar.md** with `&`, `|`, and `~` and the RISC-U ISA in **riscu.md** with `and`, `or`, and `xori` assembly and semantics.
 - Do not modify any files other than **grammar.md**, **riscu.md**, and **selfie.c**.
 - Use the `bitwise-and-or-not` target in the grader to determine your grade.
+
+
+
+## Assignment `logical-and-or-not`:
+
+Implement code generation for boolean operators `&&`, `||`, and `!` in C\*.
+
+- Before coding, extend the grammar in **grammar.md** accordingly.
+- Do not modify any files other than **grammar.md** and **selfie.c**.
+- Use the `logical-and-or-not` target in the grader to determine your grade.
 
 
 
@@ -121,4 +131,15 @@ Implement support of and code generation for `for` loops in C\*.
 - Before coding, extend the grammar in **grammar.md** accordingly.
 - Do not modify any files other than **grammar.md** and **selfie.c**.
 - Use the `for-loop` target in the grader to determine your grade.
+
+
+
+## Assignment `lazy-evaluation`:
+
+Change the boolean operators `&&`, `||`, and `!` such that lazy evaluation is used.
+
+- Before coding, extend the grammar in **grammar.md** accordingly.
+- Do not modify any files other than **grammar.md** and **selfie.c**.
+- Use the `lazy-evaluation` target in the grader to determine your grade.
+
 

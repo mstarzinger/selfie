@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2021, the Selfie Project authors. All rights reserved.
+# Copyright (c) the Selfie Project authors. All rights reserved.
 # Please see the AUTHORS file for details. Use of this source code is governed
 # by a BSD license that can be found in the LICENSE file.
 
@@ -11,7 +11,7 @@
 # This is the Makefile of the selfie system.
 
 # Compiler flags
-CFLAGS := -Wall -Wextra -O3 -m64 -D'uint64_t=unsigned long'
+CFLAGS := -Wall -Wextra -O3 -D'uint64_t=unsigned long'
 
 # Bootstrap selfie.c into selfie executable
 selfie: selfie.c
@@ -50,10 +50,10 @@ selfie-gc-nomain.h: selfie-gc.h
 	sed 's/main(/selfie_main(/' selfie-gc.h > selfie-gc-nomain.h
 
 # Consider these targets as targets, not files
-.PHONY: self self-self quine escape debug replay emu os vm min mob gib gclib giblib gclibtest boehmgc cache sat mon smt mod btor2 all
+.PHONY: self self-self quine escape debug replay emu os vm min mob gib gclib giblib gclibtest boehmgc cache sat brr bzz mon smt beat btor2 all
 
 # Run everything that only requires standard tools
-all: self self-self quine escape debug replay emu os vm min mob gib gclib giblib gclibtest boehmgc cache sat mon smt mod btor2
+all: self self-self quine escape debug replay emu os vm min mob gib gclib giblib gclibtest boehmgc cache sat brr bzz mon smt beat btor2
 
 # Self-compile selfie
 self: selfie
@@ -87,7 +87,7 @@ emu: selfie.m
 
 # Run hypervisor between emulators
 os: selfie.m
-	./selfie -l selfie.m -m 2 -l selfie.m -y 1 -l selfie.m -m 1
+	./selfie -l selfie.m -m 2 -l selfie.m -y 2 -l selfie.m -m 1
 
 # Self-compile on two virtual machines
 vm: selfie.m selfie.s
@@ -158,19 +158,46 @@ sat: babysat selfie selfie.h
 	./babysat examples/sat/rivest.cnf
 	./selfie -c selfie.h tools/babysat.c -m 1 examples/sat/rivest.cnf
 
+# Compile buzzr.c with selfie.h as library into buzzr executable
+buzzr: tools/buzzr.c selfie.h
+	$(CC) $(CFLAGS) --include selfie.h $< -o $@
+
+# Run buzzr, the symbolic execution engine, natively and as RISC-U executable on itself
+brr: buzzr selfie.h selfie
+	./buzzr -c selfie.h tools/buzzr.c - 1
+	./selfie -c selfie.h tools/buzzr.c -m 2 -c selfie.h tools/buzzr.c - 1
+
+# Prevent make from deleting intermediate target buzzr
+.SECONDARY: buzzr
+
+# Buzz *-35.c and *-10.c files
+%-35.bzz: %-35.c buzzr
+	./buzzr -c $< - 10
+%-10.bzz: %-10.c buzzr
+	./buzzr -c $< - 10
+
+# Gather symbolic execution example files as .bzz files
+bzz-1 := $(patsubst %.c,%.bzz,$(wildcard examples/symbolic/*-1-*.c))
+bzz-2 := $(patsubst %.c,%.bzz,$(wildcard examples/symbolic/*-2-*.c))
+bzz-3 := $(patsubst %.c,%.bzz,$(wildcard examples/symbolic/*-3-*.c))
+
+# Run buzzr on *.c files in symbolic folder
+bzz: $(bzz-1) $(bzz-2) $(bzz-3)
+
 # Compile monster.c with selfie.h as library into monster executable
 monster: tools/monster.c selfie.h
 	$(CC) $(CFLAGS) --include selfie.h $< -o $@
 
-# Run monster, the symbolic execution engine, natively and as RISC-U executable
+# Run monster, the symbolic execution engine, natively and as RISC-U executable on itself
 mon: monster selfie.h selfie
-	./monster
-	./selfie -c selfie.h tools/monster.c -m 1
+	./monster -c selfie.h tools/monster.c - 0 10
+	./selfie -c selfie.h tools/monster.c -m 3 -c selfie.h tools/monster.c - 0 10
+# output differs slightly because of different filenames
 
 # Prevent make from deleting intermediate target monster
 .SECONDARY: monster
 
-# Translate *.c including selfie.c into SMT-LIB model
+# Translate *-35.c and *-10.c files into SMT-LIB model
 %-35.smt: %-35.c monster
 	./monster -c $< - 0 35 --merge-enabled
 %-10.smt: %-10.c monster
@@ -181,36 +208,38 @@ smts-1 := $(patsubst %.c,%.smt,$(wildcard examples/symbolic/*-1-*.c))
 smts-2 := $(patsubst %.c,%.smt,$(wildcard examples/symbolic/*-2-*.c))
 smts-3 := $(patsubst %.c,%.smt,$(wildcard examples/symbolic/*-3-*.c))
 
-# Run monster on *.c files in symbolic
+# Run monster on *.c files in symbolic folder
 smt: $(smts-1) $(smts-2) $(smts-3)
 
-# Compile modeler.c with selfie.h as library into modeler executable
-modeler: tools/modeler.c selfie.h
+# Compile beator.c with selfie.h as library into beator executable
+beator: tools/beator.c selfie.h
 	$(CC) $(CFLAGS) --include selfie.h $< -o $@
 
-# Run modeler, the symbolic model generator, natively and as RISC-U executable
-mod: modeler selfie.h selfie
-	./modeler
-	./selfie -c selfie.h tools/modeler.c -m 1
+# Run beator, the symbolic model generator, natively on itself and as RISC-U executable
+beat: beator selfie.h selfie
+	./beator -c selfie.h tools/beator.c - 0 --check-block-access
+	./selfie -c selfie.h tools/beator.c -m 1
+# RISC-U executable also works on itself but output differs slightly
+# because of different filenames and values of a6 register
 
-# Prevent make from deleting intermediate target modeler
-.SECONDARY: modeler
+# Prevent make from deleting intermediate target beator
+.SECONDARY: beator
 
 # Translate *.c including selfie.c into BTOR2 model
-%.btor2: %.c modeler
-	./modeler -c $< - 0 --check-block-access
+%.btor2: %.c beator
+	./beator -c $< - 0 --check-block-access
 
 # Gather symbolic execution example files as .btor2 files
 btor2s := $(patsubst %.c,%.btor2,$(wildcard examples/symbolic/*.c))
 
-# Run modeler on *.c files in symbolic and even on selfie
+# Run beator on *.c files in symbolic folder and even on selfie
 btor2: $(btor2s) selfie.btor2
 
 # Consider these targets as targets, not files
-.PHONY: spike qemu assemble 32-bit boolector btormc extras
+.PHONY: spike qemu assemble beator-32 32-bit boolector btormc extras
 
 # Run everything that requires non-standard tools
-extras: spike qemu assemble 32-bit boolector btormc
+extras: spike qemu assemble beator-32 32-bit boolector btormc
 
 # Run selfie on spike
 spike: selfie.m selfie.s
@@ -228,8 +257,12 @@ qemu: selfie.m selfie.s
 assemble: selfie.s
 	riscv64-linux-gnu-as selfie.s
 
+# Compile beator.c with selfie.h as library into 32-bit beator executable
+beator-32: tools/beator.c selfie.h
+	$(CC) $(32-BIT-CFLAGS) --include selfie.h $< -o $@
+
 # Self-self-compile, self-execute, self-host, self-gc 32-bit selfie
-32-bit: selfie-32 selfie.h selfie-gc.h tools/boehm-gc.c
+32-bit: selfie-32 selfie.h selfie-gc.h tools/boehm-gc.c beator-32
 	./selfie-32 -c selfie.c -o selfie-32.m -s selfie-32.s -m 2 -c selfie.c -o selfie-32-2-32.m -s selfie-32-2-32.s
 	diff -q selfie-32.m selfie-32-2-32.m
 	diff -q selfie-32.s selfie-32-2-32.s
@@ -243,6 +276,7 @@ assemble: selfie.s
 	diff -q selfie-32.m selfie-qemu-32.m
 	diff -q selfie-32.s selfie-qemu-32.s
 	riscv64-linux-gnu-as selfie-32.s
+	./beator-32 -c selfie.h tools/beator.c - 0 --check-block-access
 
 # Run boolector SMT solver on SMT-LIB files generated by monster
 boolector: smt
@@ -250,7 +284,7 @@ boolector: smt
 	$(foreach file, $(smts-2), [ $$(boolector $(file) -e 0 | grep -c ^sat$$) -eq 2 ] &&) true
 	$(foreach file, $(smts-3), [ $$(boolector $(file) -e 0 | grep -c ^sat$$) -eq 3 ] &&) true
 
-# Run btormc bounded model checker on BTOR2 files generated by modeler
+# Run btormc bounded model checker on BTOR2 files generated by beator
 btormc: btor2
 	$(foreach file, $(btor2s), btormc $(file) &&) true
 
@@ -265,7 +299,7 @@ failingFiles := $(wildcard examples/symbolic/*-fail-*.c)
 succeedFiles := $(filter-out $(failingFiles),$(wildcard examples/symbolic/*.c))
 
 # Run validator on *.c files in symbolic
-validator: selfie modeler
+validator: selfie beator
 	$(foreach file, $(succeedFiles), tools/validator.py $(file) &&) true
 	$(foreach file, $(failingFiles), ! tools/validator.py $(file) &&) true
 
@@ -289,9 +323,11 @@ clean:
 	rm -f *.s
 	rm -f *.smt
 	rm -f *.btor2
-	rm -f selfie selfie-32 selfie.h selfie-gc.h selfie-gc-nomain.h selfie.exe
-	rm -f babysat monster modeler
 	rm -f examples/*.m
 	rm -f examples/*.s
 	rm -f examples/symbolic/*.smt
 	rm -f examples/symbolic/*.btor2
+	rm -f tools/*.smt
+	rm -f tools/*.btor2
+	rm -f selfie selfie-32 selfie.h selfie-gc.h selfie-gc-nomain.h selfie.exe
+	rm -f babysat buzzr monster beator beator-32

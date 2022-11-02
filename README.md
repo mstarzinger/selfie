@@ -4,12 +4,12 @@ Selfie is a project of the [Computational Systems Group](http://www.cs.uni-salzb
 
 The Selfie Project provides an educational platform for teaching undergraduate and graduate students the design and implementation of programming languages and runtime systems. The focus is on the construction of compilers, libraries, operating systems, and virtual machine monitors. The common theme is to identify and resolve self-reference in systems code which is seen as the key challenge when teaching systems engineering, hence the name.
 
-Selfie is a self-contained 64-bit, 11-KLOC C implementation of:
+Selfie is a self-contained 64-bit, 12-KLOC C implementation of:
 
-1. a self-compiling compiler called starc that compiles a tiny but still fast [subset of C](https://github.com/cksystemsteaching/selfie/blob/main/semantics.md) called C Star ([C*](https://github.com/cksystemsteaching/selfie/blob/main/grammar.md)) to a tiny and easy-to-teach subset of RISC-V called [RISC-U](https://github.com/cksystemsteaching/selfie/blob/main/riscu.md),
+1. a self-compiling compiler called starc that compiles a tiny but still fast [subset of C](https://github.com/cksystemsteaching/selfie/blob/main/semantics.md) called C Star ([C\*](https://github.com/cksystemsteaching/selfie/blob/main/grammar.md)) to a tiny and easy-to-teach subset of RISC-V called [RISC-U](https://github.com/cksystemsteaching/selfie/blob/main/riscu.md),
 2. a self-executing emulator called mipster that executes RISC-U code including itself when compiled with starc,
 3. a self-hosting hypervisor called hypster that provides RISC-U virtual machines that can host all of selfie, that is, starc, mipster, and hypster itself, and
-4. a tiny C* library called libcstar utilized by selfie.
+4. a tiny C\* library called libcstar utilized by selfie.
 
 Selfie is implemented in a single (!) file and kept minimal for simplicity. There is also a simple in-memory linker, a RISC-U disassembler, a garbage collector, L1 instruction and data caches, a profiler, and a debugger with replay as well as minimal operating system support in the form of RISC-V system calls built into the emulator and hypervisor. The garbage collector is conservative and even self-collecting. It may operate as library in the same address space as the mutator and/or as part of the emulator in the address space of the kernel.
 
@@ -23,7 +23,7 @@ Selfie is designed as 64-bit system and requires as such a 64-bit system to run 
 2. Slides: There are classroom [slides](http://selfie.cs.uni-salzburg.at/slides) that provide a comprehensive introduction to the design and implementation of selfie.
 3. Autograder: There is an [autograder](https://github.com/cksystemsteaching/selfie/blob/main/grader/README.md) with compiler and operating systems assignments.
 4. Paper: There is an [Onward! 2017 paper](https://dl.acm.org/doi/10.1145/3133850.3133857) featuring selfie.
-5. Book: There is a free book in early draft form called [Selfie: Computer Science for Everyone](http://leanpub.com/selfie) reaching out to everyone with an interest in learning about computer science.
+5. Book: There is a free book in early draft form based on selfie called [Elementary Computer Science: From Bits and Bytes to the Big Picture](https://github.com/ckirsch/book) reaching out to everyone with an interest in learning about computer science.
 6. Code: The selfie code is open source and available at [github.com/cksystemsteaching/selfie](https://github.com/cksystemsteaching/selfie)
 7. Twitter: Follow us at [twitter.com/christophkirsch](https://twitter.com/christophkirsch)
 8. Web: The selfie homepage is at [selfie.cs.uni-salzburg.at](http://selfie.cs.uni-salzburg.at)
@@ -31,10 +31,12 @@ Selfie is designed as 64-bit system and requires as such a 64-bit system to run 
 ## Extras
 
 1. Garbage collection: In addition to the conservative but O(n^2) garbage collector in selfie, there is an implementation of an O(n) [Boehm](https://github.com/cksystemsteaching/selfie/blob/main/tools/boehm-gc.c) garbage collector for small memory blocks with fall-back to the garbage collector in selfie for large memory blocks.
-2. Symbolic execution: There is a self-executing symbolic execution engine called [monster](https://github.com/cksystemsteaching/selfie/blob/main/tools/monster.c) based on selfie that translates RISC-U code including all of selfie and itself to SMT-LIB formulae that are satisfiable if and only if there is input to the code such that the code exits with non-zero exit codes or performs division by zero within a given number of machine instructions.
-3. Bounded model checking: There is a self-translating modeling engine called [modeler](https://github.com/cksystemsteaching/selfie/blob/main/tools/modeler.c) based on selfie that translates RISC-U code including all of selfie and itself to BTOR2 formulae that are satisfiable if and only if there is input to the code such that the code exits with non-zero exit codes, performs division by zero, or accesses memory outside of allocated memory blocks.
-4. SAT solving: There is a naive SAT solver called [babysat](https://github.com/cksystemsteaching/selfie/blob/main/tools/babysat.c) based on selfie that computes satisfiability of SAT formulae in DIMACS CNF.
-5. Binary translation: There is a self-translating [binary translator](https://github.com/cksystemsteaching/selfie/blob/riscv-2-x86-unsupported/tools/riscv-2-x86.c) based on selfie that translates RISC-U code including all of selfie and itself to x86 binary code.
+2. Fuzzing: There is a simple but self-fuzzing fuzzer called [buzzr](https://github.com/cksystemsteaching/selfie/blob/main/tools/buzzr.c) based on selfie that fuzzes RISC-U code including all of selfie and itself.
+3. Symbolic execution: There is a self-executing symbolic execution engine called [monster](https://github.com/cksystemsteaching/selfie/blob/main/tools/monster.c) based on selfie that translates RISC-U code including all of selfie and itself to SMT-LIB formulae that are satisfiable if and only if there is input to the code such that the code exits with non-zero exit codes or performs division by zero within a given number of machine instructions.
+4. Bounded model checking: There is a self-translating modeling engine called [BEATOR](https://github.com/cksystemsteaching/selfie/blob/main/tools/beator.c) based on selfie that translates RISC-U code including all of selfie and itself to BTOR2 formulae that are satisfiable if and only if there is input to the code such that the code exits with non-zero exit codes, performs division by zero, or accesses memory outside of allocated memory blocks.
+5. BTOR2 visualization: There is a visualization tool called [beatle](https://github.com/cksystemsgroup/beator-visualizer) that displays BTOR2 formulae generated from RISC-U binaries as directed acyclic graphs.
+6. SAT solving: There is a bruteforce SAT solver called [babysat](https://github.com/cksystemsteaching/selfie/blob/main/tools/babysat.c) based on selfie that computes satisfiability of SAT formulae in DIMACS CNF.
+7. Binary translation: There is a self-translating [binary translator](https://github.com/cksystemsteaching/selfie/blob/riscv-2-x86-unsupported/tools/riscv-2-x86.c) based on selfie that translates RISC-U code including all of selfie and itself to x86 binary code.
 
 ## Installing Selfie
 
@@ -53,10 +55,10 @@ At this point we assume that you have a system that supports running selfie. Bel
 The next step is to produce a selfie binary. To do that `cd` to the selfie folder in your terminal and then type `make`. With docker, the system will respond `make: 'selfie' is up to date` since there is already a selfie binary pre-installed. Without docker, `make` will invoke the C compiler on your machine or in the cloud9 workspace:
 
 ```bash
-cc -Wall -Wextra -O3 -m64 -D'uint64_t=unsigned long' selfie.c -o selfie
+cc -Wall -Wextra -O3 -D'uint64_t=unsigned long' selfie.c -o selfie
 ```
 
-and then compile `selfie.c` into an executable called `selfie` as directed by the `-o` option. The executable contains the C\* compiler, the mipster emulator, and the hypster hypervisor. The `-Wall` and `-Wextra` options enable all compiler warnings which is useful during further development of selfie. The `-O3` option instructs the compiler to generate optimized code. The `-m64` option makes the compiler generate a 64-bit executable. The `-D'uint64_t=unsigned long'` option is needed to bootstrap the code. It defines the data type `uint64_t` which would otherwise be undefined since C\* does not include the necessary definitions. If your system supports compiling and executing 32-bit binaries you may also try `make selfie-32` which will produce a 32-bit system that in turn generates and executes 32-bit binaries.
+and then compile `selfie.c` into an executable called `selfie` as directed by the `-o` option. The executable contains the C\* compiler, the mipster emulator, and the hypster hypervisor. The `-Wall` and `-Wextra` options enable all compiler warnings which is useful during further development of selfie. The `-O3` option instructs the compiler to generate optimized code. The `-D'uint64_t=unsigned long'` option is needed to bootstrap the code. It defines the data type `uint64_t` which would otherwise be undefined since C\* does not include the necessary definitions. If your system supports compiling and executing 32-bit binaries you may also try `make selfie-32` which will produce a 32-bit system that in turn generates and executes 32-bit binaries.
 
 ## Running Selfie
 

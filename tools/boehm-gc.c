@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015-2021, the Selfie Project authors. All rights reserved.
+Copyright (c) the Selfie Project authors. All rights reserved.
 Please see the AUTHORS file for details. Use of this source code is
 governed by a BSD license that can be found in the LICENSE file.
 
@@ -30,28 +30,28 @@ void sweep_boehm(uint64_t* context);
 // --- boehm gc context extension ---
 
 // +----+-------------------------+
-// | 25 | chunk heap start        | start of the chunk heap segment
-// | 26 | chunk heap bump         | bump pointer of chunk heap segment
-// | 27 | chunk used list head    | pointer to head of the chunk used list
-// | 28 | chunk free list head    | pointer to head of the chunk free list
-// | 29 | small object free lists | pointer to array containing all small object free lists
+// | +0 | chunk heap start        | start of the chunk heap segment
+// | +1 | chunk heap bump         | bump pointer of chunk heap segment
+// | +2 | chunk used list head    | pointer to head of the chunk used list
+// | +3 | chunk free list head    | pointer to head of the chunk free list
+// | +4 | small object free lists | pointer to array containing all small object free lists
 // +----+-------------------------+
 
 uint64_t* allocate_context() {
-  return smalloc(14 * SIZEOFUINT64STAR + 16 * SIZEOFUINT64);
+  return smalloc(CONTEXTENTRIES * SIZEOFUINT64 + 5 * SIZEOFUINT64STAR);
 }
 
-uint64_t* get_chunk_heap_start(uint64_t* context)           { return (uint64_t*) *(context + 25); }
-uint64_t* get_chunk_heap_bump(uint64_t* context)            { return (uint64_t*) *(context + 26); }
-uint64_t* get_chunk_used_list_head(uint64_t* context)       { return (uint64_t*) *(context + 27); }
-uint64_t* get_chunk_free_list_head(uint64_t* context)       { return (uint64_t*) *(context + 28); }
-uint64_t* get_small_object_free_lists(uint64_t* context)    { return (uint64_t*) *(context + 29); }
+uint64_t* get_chunk_heap_start(uint64_t* context)           { return (uint64_t*) *(context + CONTEXTENTRIES); }
+uint64_t* get_chunk_heap_bump(uint64_t* context)            { return (uint64_t*) *(context + CONTEXTENTRIES + 1); }
+uint64_t* get_chunk_used_list_head(uint64_t* context)       { return (uint64_t*) *(context + CONTEXTENTRIES + 2); }
+uint64_t* get_chunk_free_list_head(uint64_t* context)       { return (uint64_t*) *(context + CONTEXTENTRIES + 3); }
+uint64_t* get_small_object_free_lists(uint64_t* context)    { return (uint64_t*) *(context + CONTEXTENTRIES + 4); }
 
-void set_chunk_heap_start(uint64_t* context, uint64_t* chunk_heap_start)                { *(context + 25) = (uint64_t) chunk_heap_start; }
-void set_chunk_heap_bump(uint64_t* context, uint64_t* chunk_heap_bump)                  { *(context + 26) = (uint64_t) chunk_heap_bump; }
-void set_chunk_used_list_head(uint64_t* context, uint64_t* chunk_used_list_head)        { *(context + 27) = (uint64_t) chunk_used_list_head; }
-void set_chunk_free_list_head(uint64_t* context, uint64_t* chunk_free_list_head)        { *(context + 28) = (uint64_t) chunk_free_list_head; }
-void set_small_object_free_lists(uint64_t* context, uint64_t* small_object_free_lists)  { *(context + 29) = (uint64_t) small_object_free_lists; }
+void set_chunk_heap_start(uint64_t* context, uint64_t* chunk_heap_start)                { *(context + CONTEXTENTRIES)     = (uint64_t) chunk_heap_start; }
+void set_chunk_heap_bump(uint64_t* context, uint64_t* chunk_heap_bump)                  { *(context + CONTEXTENTRIES + 1) = (uint64_t) chunk_heap_bump; }
+void set_chunk_used_list_head(uint64_t* context, uint64_t* chunk_used_list_head)        { *(context + CONTEXTENTRIES + 2) = (uint64_t) chunk_used_list_head; }
+void set_chunk_free_list_head(uint64_t* context, uint64_t* chunk_free_list_head)        { *(context + CONTEXTENTRIES + 3) = (uint64_t) chunk_free_list_head; }
+void set_small_object_free_lists(uint64_t* context, uint64_t* small_object_free_lists)  { *(context + CONTEXTENTRIES + 4) = (uint64_t) small_object_free_lists; }
 
 // getters and setters with different access in library/kernel
 
@@ -275,7 +275,7 @@ void free_chunk(uint64_t* context, uint64_t* entry) {
   uint64_t* next_it;
 
   coso_entry = get_chunk_list_pointer(entry);
-  object_size = get_chunk_object_size(entry) / SIZEOFUINT64; // in words
+  object_size = get_chunk_object_size(entry) / SIZEOFUINT64; // in memory words
 
   zero_chunk_allocbits(entry);
 
@@ -576,7 +576,7 @@ uint64_t* allocate_object(uint64_t* context, uint64_t size) {
 
   small_object_free_list = get_small_object_free_lists_gc(context) + (size / SIZEOFUINT64 - 1);
 
-  // assert: size is a multiple of WORDSIZE and given in bytes
+  // assert: size is a multiple of GC_WORDSIZE and given in bytes
 
   if (*(small_object_free_list) == 0)
     fill_small_object_free_list(context, allocate_chunk(context, size));
@@ -746,7 +746,7 @@ uint64_t mark_object_boehm(uint64_t* context, uint64_t gc_address) {
   while (object_start < object_end) {
     mark_object(context, object_start);
 
-    object_start = object_start + SIZEOFUINT64;
+    object_start = object_start + GC_WORDSIZE;
   }
 
   return 1;

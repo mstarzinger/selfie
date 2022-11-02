@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015-2021, the Selfie Project authors. All rights reserved.
+Copyright (c) the Selfie Project authors. All rights reserved.
 Please see the AUTHORS file for details. Use of this source code is
 governed by a BSD license that can be found in the LICENSE file.
 
@@ -151,18 +151,15 @@ void selfie_print_dimacs() {
     variable = 0;
 
     while (variable < number_of_sat_variables) {
-      if (*(sat_instance + clause * 2 * number_of_sat_variables + 2 * variable) == TRUE) {
-        print_integer(variable + 1);
-        print(" ");
-      } else if (*(sat_instance + clause * 2 * number_of_sat_variables + 2 * variable + 1) == TRUE) {
-        print_integer(-(variable + 1));
-        print(" ");
-      }
+      if (*(sat_instance + clause * 2 * number_of_sat_variables + 2 * variable) == TRUE)
+        printf("%ld ", variable + 1);
+      else if (*(sat_instance + clause * 2 * number_of_sat_variables + 2 * variable + 1) == TRUE)
+        printf("%ld ", -(variable + 1));
 
       variable = variable + 1;
     }
 
-    print("0\n");
+    printf("0\n");
 
     clause = clause + 1;
   }
@@ -230,7 +227,7 @@ void dimacs_word(char* word) {
     } else
       syntax_error_unexpected_identifier(word);
   } else
-    syntax_error_symbol(SYM_IDENTIFIER);
+    syntax_error_expected_symbol(SYM_IDENTIFIER);
 
   exit(EXITCODE_PARSERERROR);
 }
@@ -245,7 +242,7 @@ uint64_t dimacs_number() {
 
     return number;
   } else
-    syntax_error_symbol(SYM_INTEGER);
+    syntax_error_expected_symbol(SYM_INTEGER);
 
   exit(EXITCODE_PARSERERROR);
 }
@@ -283,7 +280,7 @@ void dimacs_get_clause(uint64_t clause) {
     } else if (symbol == SYM_EOF)
       return;
     else
-      syntax_error_symbol(SYM_INTEGER);
+      syntax_error_expected_symbol(SYM_INTEGER);
 
     dimacs_get_symbol();
   }
